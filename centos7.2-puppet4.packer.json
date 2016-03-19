@@ -1,0 +1,79 @@
+{
+  "builders": [
+    {
+      "type": "virtualbox-iso",
+      "guest_os_type": "RedHat_64",
+      "iso_url": "http://mirror.nl.leaseweb.net/centos/7.2.1511/isos/x86_64/CentOS-7-x86_64-Minimal-1511.iso",
+      "iso_checksum": "f90e4d28fa377669b2db16cbcb451fcb9a89d2460e3645993e30e137ac37d284",
+      "iso_checksum_type": "sha256",
+      "headless": true,
+      "http_directory": "./",
+      "boot_command": [
+        "<esc><wait>",
+        "linux ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/centos7.2-puppet4.ks",
+        "<enter><wait>"
+      ],
+      "shutdown_command": "sudo shutdown -P now",
+      "ssh_wait_timeout": "15m",
+      "ssh_username": "vagrant",
+      "ssh_password": "vagrant",
+      "guest_additions_mode": "upload",
+      "guest_additions_path": "/home/vagrant/VBoxGuestAdditions.iso"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "sleep 30",
+        "sudo yum -y update",
+        "echo === Rebooting... ===",
+        "sudo reboot",
+        "sleep 3600"
+      ]
+    },
+    {
+      "type": "shell",
+      "pause_before": "20s",
+      "inline": [
+        "echo === Rebooted ===",
+        "sudo yum -y install yum-utils bzip2 gcc kernel-headers \"kernel-devel-uname-r == $(uname -r)\"",
+        "echo === Removing old kernels ===",
+        "sudo package-cleanup --oldkernels --count=1 -y",
+        "echo === Installing VirtualBox Guest Additions ===",
+        "sudo mkdir /tmp/isomount",
+        "sudo mount -t iso9660 -o loop /home/vagrant/VBoxGuestAdditions.iso /tmp/isomount",
+        "sudo /tmp/isomount/VBoxLinuxAdditions.run || true",
+        "sudo lsmod | grep -i ^vbox",
+        "sudo umount /tmp/isomount",
+        "sudo rm -rf /tmp/isomount /home/vagrant/VBoxGuestAdditions.iso",
+        "echo === Installing puppet ===",
+        "sudo rpm -ivh https://yum.puppetlabs.com/puppetlabs-release-pc1-el-7.noarch.rpm",
+        "sudo yum -y install puppet-agent",
+        "echo === Clean up yum ===",
+        "sudo yum clean all",
+        "echo === Remove ssh host key ===",
+        "sudo rm /etc/ssh/ssh_host_* || true"
+      ]
+    }
+  ],
+  "post-processors": [
+    [
+      {
+        "type": "vagrant",
+        "output": "centos7.2-puppet4.box"
+      },
+      {
+        "type": "atlas",
+        "artifact": "jorisw/centos7.2-puppet4",
+        "artifact_type": "vagrant.box",
+        "metadata": {
+          "provider": "virtualbox",
+          "version": "1.0.0",
+          "created_at": "{{timestamp}}",
+          "description": "# CentOS 7.2 x86_64 with the puppet 4 agent pre-installed.\n\nCan be used with `puppet apply` as a vagrant provisioner. The puppet agent service is not running by default. Firewall is enabled. Selinux is set to permissive.\n\nThe packer configuration can be found at https://github.com/Joris-van-der-Wel/centos7.2-puppet4-packer"
+        }
+      }
+    ]
+  ]
+}
