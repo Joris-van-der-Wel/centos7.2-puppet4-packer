@@ -37,7 +37,7 @@
       "pause_before": "20s",
       "inline": [
         "echo === Rebooted ===",
-        "sudo yum -y install yum-utils bzip2 gcc kernel-headers \"kernel-devel-uname-r == $(uname -r)\"",
+        "sudo yum -y install yum-utils deltarpm bzip2 gcc kernel-headers \"kernel-devel-uname-r == $(uname -r)\"",
         "echo === Removing old kernels ===",
         "sudo package-cleanup --oldkernels --count=1 -y",
         "echo === Installing VirtualBox Guest Additions ===",
